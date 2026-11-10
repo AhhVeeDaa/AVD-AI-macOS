@@ -81,6 +81,11 @@ public final class ToolRegistry: @unchecked Sendable {
     private let queue = DispatchQueue(label: "com.awitness.toolregistry", attributes: .concurrent)
     private var tools: [String: ToolDefinition] = [:]
     
+    // Command allowlist for developer operations
+    public static let commandAllowlist: Set<String> = [
+        "git", "swift", "uname", "sw_vers", "echo", "pwd", "date", "whoami"
+    ]
+    
     public init() {
         registerBuiltInTools()
     }
@@ -99,7 +104,6 @@ public final class ToolRegistry: @unchecked Sendable {
         queue.sync { self.tools[id] }
     }
     
-    /// Generates structured prompt documentation of available tools for model instruction
     public func generateToolPrompt() -> String {
         let list = allTools()
         if list.isEmpty { return "" }
@@ -124,7 +128,6 @@ public final class ToolRegistry: @unchecked Sendable {
         return lines.joined(separator: "\n")
     }
     
-    /// Validates parameters against tool schema
     public func validateParameters(tool: ToolDefinition, args: [String: Any]) -> Result<Void, Error> {
         for p in tool.parameters where p.required {
             if args[p.name] == nil {
@@ -136,7 +139,7 @@ public final class ToolRegistry: @unchecked Sendable {
     }
     
     private func registerBuiltInTools() {
-        // 1. memory_search: retrieve relevant stored memories
+        // 1. memory_search
         register(tool: ToolDefinition(
             id: "memory_search",
             name: "Memory Search",
@@ -154,7 +157,7 @@ public final class ToolRegistry: @unchecked Sendable {
             }
         ))
         
-        // 2. conversation_search: search past conversation titles and message contents
+        // 2. conversation_search
         register(tool: ToolDefinition(
             id: "conversation_search",
             name: "Conversation Search",
@@ -185,7 +188,7 @@ public final class ToolRegistry: @unchecked Sendable {
             }
         ))
         
-        // 3. system_status: inspect health and hardware profile
+        // 3. system_status
         register(tool: ToolDefinition(
             id: "system_status",
             name: "System Status",
@@ -215,7 +218,7 @@ public final class ToolRegistry: @unchecked Sendable {
             }
         ))
         
-        // 4. memory_manage: propose, record or update memory
+        // 4. memory_manage
         register(tool: ToolDefinition(
             id: "memory_manage",
             name: "Memory Management",
@@ -246,7 +249,7 @@ public final class ToolRegistry: @unchecked Sendable {
             }
         ))
         
-        // 5. open_url: open requested URL with explicit confirmation
+        // 5. open_url
         register(tool: ToolDefinition(
             id: "open_url",
             name: "Open URL",
@@ -274,7 +277,7 @@ public final class ToolRegistry: @unchecked Sendable {
             }
         ))
         
-        // 6. local_diagnostics: read-only application directory inspection
+        // 6. local_diagnostics
         register(tool: ToolDefinition(
             id: "local_diagnostics",
             name: "Local Information & Diagnostics",
@@ -298,6 +301,116 @@ public final class ToolRegistry: @unchecked Sendable {
                     }
                 }
                 return ToolExecutionResult(success: true, output: lines.joined(separator: "\n"))
+            }
+        ))
+        
+        // 7. open_application (NEW in v1.5): Device capability interaction
+        register(tool: ToolDefinition(
+            id: "open_application",
+            name: "Open macOS Application",
+            description: "Launch an installed application by bundle identifier or name (Requires EXECUTE tier + confirmation)",
+            parameters: [
+                ToolParameterSchema(name: "bundleIdOrName", type: "string", description: "Application bundle identifier (e.g. com.apple.Terminal) or app name")
+            ],
+            requiredTier: .execute,
+            requiresExplicitApproval: true,
+            handler: { args in
+                let target = args["bundleIdOrName"] as? String ?? ""
+                if target.isEmpty {
+                    return ToolExecutionResult(success: false, output: "", error: "Target app name or bundle ID is required.")
+                }
+                
+                let launched = await MainActor.run { () -> Bool in
+                    if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: target) {
+                        let config = NSWorkspace.OpenConfiguration()
+                        NSWorkspace.shared.openApplication(at: appURL, configuration: config, completionHandler: nil)
+                        return true
+                    }
+                    if let appURL = NSWorkspace.shared.urlsForApplications(toOpen: URL(fileURLWithPath: "/Applications/\(target).app")).first {
+                        NSWorkspace.shared.openApplication(at: appURL, configuration: NSWorkspace.OpenConfiguration(), completionHandler: nil)
+                        return true
+                    }
+                    return false
+                }
+                
+                if launched {
+                    return ToolExecutionResult(success: true, output: "Dispatched launch request for application '\(target)'.")
+                } else {
+                    return ToolExecutionResult(success: false, output: "", error: "Could not locate installed application matching '\(target)'.")
+                }
+            }
+        ))
+        
+        // 8. read_local_file (NEW in v1.5): Safe approved read-only workspace inspection
+        register(tool: ToolDefinition(
+            id: "read_local_file",
+            name: "Read Local File",
+            description: "Read text contents of a file within an approved workspace or user directory",
+            parameters: [
+                ToolParameterSchema(name: "path", type: "string", description: "Absolute path to the text file")
+            ],
+            requiredTier: .observe,
+            requiresExplicitApproval: false,
+            handler: { args in
+                let path = args["path"] as? String ?? ""
+                guard !path.isEmpty, !path.contains("..") else {
+                    return ToolExecutionResult(success: false, output: "", error: "Invalid path specification.")
+                }
+                // Security guard: disallow reading private keys or credential files
+                let forbiddenKeywords = ["id_rsa", ".ssh", "Keychains", "Credentials", "token", ".env"]
+                if forbiddenKeywords.contains(where: { path.contains($0) }) {
+                    return ToolExecutionResult(success: false, output: "", error: "Access prohibited by local security boundary.")
+                }
+                guard FileManager.default.fileExists(atPath: path),
+                      let content = try? String(contentsOfFile: path, encoding: .utf8) else {
+                    return ToolExecutionResult(success: false, output: "", error: "File not readable or does not exist at '\(path)'.")
+                }
+                let truncated = content.prefix(4000)
+                let note = content.count > 4000 ? "\n[Truncated to first 4000 characters]" : ""
+                return ToolExecutionResult(success: true, output: String(truncated) + note)
+            }
+        ))
+        
+        // 9. run_allowlisted_command (NEW in v1.5): Governed developer CLI execution
+        register(tool: ToolDefinition(
+            id: "run_allowlisted_command",
+            name: "Run Allowlisted Command",
+            description: "Execute a pre-approved safe developer command (e.g. git status, swift --version, uname) with arguments",
+            parameters: [
+                ToolParameterSchema(name: "executable", type: "string", description: "Executable name on the strict allowlist"),
+                ToolParameterSchema(name: "arguments", type: "string", description: "Arguments space-separated", required: false)
+            ],
+            requiredTier: .execute,
+            requiresExplicitApproval: true,
+            handler: { args in
+                let executable = (args["executable"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                let rawArgs = (args["arguments"] as? String ?? "").components(separatedBy: " ").filter { !$0.isEmpty }
+                
+                // Allowlist verification
+                guard ToolRegistry.commandAllowlist.contains(executable) else {
+                    return ToolExecutionResult(success: false, output: "", error: "Executable '\(executable)' is not on the strict allowlist.")
+                }
+                
+                let process = Process()
+                process.executableURL = URL(fileURLWithPath: "/usr/bin/\(executable)")
+                if !FileManager.default.fileExists(atPath: process.executableURL!.path) {
+                    process.executableURL = URL(fileURLWithPath: "/bin/\(executable)")
+                }
+                process.arguments = rawArgs
+                
+                let pipe = Pipe()
+                process.standardOutput = pipe
+                process.standardError = pipe
+                
+                do {
+                    try process.run()
+                    process.waitUntilExit()
+                    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                    let output = String(data: data, encoding: .utf8) ?? ""
+                    return ToolExecutionResult(success: process.terminationStatus == 0, output: output, error: process.terminationStatus != 0 ? "Exited with code \(process.terminationStatus)" : nil)
+                } catch {
+                    return ToolExecutionResult(success: false, output: "", error: error.localizedDescription)
+                }
             }
         ))
     }

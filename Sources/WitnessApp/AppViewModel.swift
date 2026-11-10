@@ -41,16 +41,28 @@ final class AppViewModel: ObservableObject {
     @ObservedObject var voiceManager = VoiceManager.shared
     @Published var voiceEnabled: Bool = false
     
+    // v1.5 Device Intelligence & Specialist Agents
+    @Published var discoveredCapabilities: [DiscoveredCapability] = []
+    @Published var selectedCapabilityCategory: DeviceItemCategory? = nil
+    @Published var specialistAgentProfiles: [SpecialistAgentProfile] = []
+    @Published var modelRegistryEntries: [ModelRegistryEntry] = []
+    @Published var activeAgentAssessment: TaskComplexityAssessment? = nil
+    @Published var isDiscoveringDevices: Bool = false
+    
     private let orchestrator = CoreOrchestrator.shared
     private let memoryManager = MemoryManager.shared
     private let permissionEngine = PermissionEngine.shared
     private let modelRouter = ModelRouter.shared
     private let identityLoader = WitnessIdentityLoader.shared
     private let toolRegistry = ToolRegistry.shared
+    private let discoveryService = DeviceDiscoveryService.shared
+    private let decisionLayer = DecisionLayer.shared
+    private let modelRegistry = ModelRegistry.shared
     
     init() {
         refreshState()
         checkConnection()
+        triggerDeviceDiscovery()
     }
     
     func refreshState() {
@@ -65,6 +77,9 @@ final class AppViewModel: ObservableObject {
         self.memoryItems = memoryManager.allItems()
         self.identity = identityLoader.getIdentity()
         self.registeredTools = toolRegistry.allTools()
+        self.discoveredCapabilities = discoveryService.allCapabilities()
+        self.specialistAgentProfiles = decisionLayer.allProfiles()
+        self.modelRegistryEntries = modelRegistry.allModels()
         
         let cfg = modelRouter.config
         self.selectedProvider = cfg.providerType
@@ -90,6 +105,23 @@ final class AppViewModel: ObservableObject {
                 }
             }
         }
+    }
+    
+    func triggerDeviceDiscovery() {
+        isDiscoveringDevices = true
+        Task {
+            _ = await discoveryService.performDiscovery()
+            _ = await modelRegistry.refreshModelInventory()
+            await MainActor.run {
+                self.isDiscoveringDevices = false
+                self.refreshState()
+            }
+        }
+    }
+    
+    func toggleCapability(_ item: DiscoveredCapability) {
+        discoveryService.toggleCapability(id: item.id, enabled: !item.isEnabled)
+        refreshState()
     }
     
     func saveModelConfig() {
@@ -132,9 +164,13 @@ final class AppViewModel: ObservableObject {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, !isStreaming else { return }
         
+        // Assess task via Bounded Decision Layer
+        let assessment = decisionLayer.assessTask(userQuery: trimmed)
+        self.activeAgentAssessment = assessment
+        
         isStreaming = true
         currentStreamingText = ""
-        statusMessage = "Witness is contemplating..."
+        statusMessage = "Witness (\(assessment.recommendedAgentRole.rawValue)) contemplating..."
         
         orchestrator.processUserMessage(
             text: trimmed,
@@ -189,7 +225,6 @@ final class AppViewModel: ObservableObject {
     func rejectPendingAction() {
         guard let action = pendingToolAction else { return }
         self.pendingToolAction = nil
-        // Log rejection in audit trail
         _ = permissionEngine.evaluate(actionTier: .prohibited, description: "User declined tool proposal: \(action.toolName)")
         refreshState()
     }

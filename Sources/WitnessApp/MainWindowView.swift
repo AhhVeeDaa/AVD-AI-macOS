@@ -7,6 +7,7 @@ struct MainWindowView: View {
     
     enum NavigationTab: String, CaseIterable, Identifiable {
         case chat = "Presence"
+        case capabilities = "Capabilities"
         case memory = "Memory Vault"
         case permissions = "Permissions"
         case settings = "Engine & Models"
@@ -16,6 +17,7 @@ struct MainWindowView: View {
         var icon: String {
             switch self {
             case .chat: return "bubble.left.and.bubble.right.fill"
+            case .capabilities: return "sparkles.rectangle.stack.fill"
             case .memory: return "externaldrive.fill"
             case .permissions: return "shield.lefthalf.filled"
             case .settings: return "cpu"
@@ -30,7 +32,7 @@ struct MainWindowView: View {
         } detail: {
             detailContent
         }
-        .frame(minWidth: 840, minHeight: 560)
+        .frame(minWidth: 860, minHeight: 580)
         .background(WitnessTheme.bgDeep)
     }
     
@@ -54,8 +56,8 @@ struct MainWindowView: View {
                         .font(.system(size: 13, weight: .black, design: .monospaced))
                         .foregroundColor(WitnessTheme.textPrimary)
                     
-                    Text("AVD CONTINUITY v1.4")
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    Text("DEVICE INTELLIGENCE v1.5")
+                        .font(.system(size: 8.5, weight: .bold, design: .monospaced))
                         .foregroundColor(WitnessTheme.cyanAccent)
                 }
                 
@@ -90,11 +92,11 @@ struct MainWindowView: View {
                 }
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 8)
+            .padding(.vertical, 6)
             
             Divider()
                 .background(WitnessTheme.borderSubtle)
-                .padding(.vertical, 8)
+                .padding(.vertical, 6)
             
             // Continuity Sessions Header & Search
             VStack(alignment: .leading, spacing: 6) {
@@ -127,7 +129,7 @@ struct MainWindowView: View {
                     TextField("Search sessions...", text: $vm.conversationSearchQuery)
                         .font(.system(size: 11))
                         .textFieldStyle(.plain)
-                        .onChange(of: vm.conversationSearchQuery) { _ in
+                        .onChange(of: vm.conversationSearchQuery) {
                             vm.refreshState()
                         }
                 }
@@ -220,6 +222,8 @@ struct MainWindowView: View {
         switch selectedTab {
         case .chat:
             ConversationDetailView(vm: vm)
+        case .capabilities:
+            CapabilitiesView(vm: vm)
         case .memory:
             MemoryManagerView(vm: vm)
         case .permissions:
