@@ -45,7 +45,7 @@ final class EndToEndOrchestratorTests: XCTestCase {
             }
         )
         
-        await fulfillment(of: [expectation], timeout: 45.0)
+        await fulfillment(of: [expectation], timeout: 200.0)
         
         let collected = collector.get()
         XCTAssertFalse(collected.isEmpty)

@@ -31,7 +31,8 @@ struct WitnessApp: App {
         // Main Application Window
         WindowGroup("Witness") {
             MainWindowView(vm: vm)
-                .background(Color(NSColor.windowBackgroundColor))
+                .background(WitnessTheme.bgDeep)
+                .preferredColorScheme(.dark)
         }
         .windowStyle(.titleBar)
         .windowToolbarStyle(.unified)

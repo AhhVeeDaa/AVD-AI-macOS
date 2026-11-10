@@ -7,65 +7,108 @@ struct CompactCompanionView: View {
     @State private var quickPrompt: String = ""
     
     var body: some View {
-        VStack(spacing: 8) {
-            // Header
-            HStack {
-                Circle()
-                    .fill(vm.isConnected ? Color.green : Color.orange)
-                    .frame(width: 8, height: 8)
-                Text("Witness Companion")
-                    .font(.caption.bold())
+        VStack(spacing: 10) {
+            // Header Bar
+            HStack(spacing: 8) {
+                ZStack {
+                    Circle()
+                        .fill(vm.isConnected ? WitnessTheme.emeraldSignal.opacity(0.2) : WitnessTheme.amberAccent.opacity(0.2))
+                        .frame(width: 18, height: 18)
+                    
+                    Circle()
+                        .fill(vm.isConnected ? WitnessTheme.emeraldSignal : WitnessTheme.amberAccent)
+                        .frame(width: 7, height: 7)
+                }
+                
+                Text("WITNESS")
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundColor(WitnessTheme.textPrimary)
+                
                 Spacer()
+                
                 Text(vm.permissionTier.rawValue)
-                    .font(.caption2)
-                    .padding(.horizontal, 4)
-                    .background(Color.secondary.opacity(0.2))
+                    .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(WitnessTheme.bgElevated)
+                    .foregroundColor(WitnessTheme.amberAccent)
                     .cornerRadius(4)
             }
             
-            // Recent Exchange or Streaming status
+            // Streaming response or last message
             if vm.isStreaming {
                 ScrollView {
-                    Text(vm.currentStreamingText.isEmpty ? "Witness is thinking..." : vm.currentStreamingText)
-                        .font(.caption)
+                    Text(vm.currentStreamingText.isEmpty ? "Witness is contemplating..." : vm.currentStreamingText)
+                        .font(.system(size: 11.5))
+                        .foregroundColor(WitnessTheme.textPrimary)
+                        .lineSpacing(3)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(height: 70)
-                .padding(6)
-                .background(Color(NSColor.controlBackgroundColor))
-                .cornerRadius(6)
+                .frame(height: 80)
+                .padding(8)
+                .background(WitnessTheme.bgDeep)
+                .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(WitnessTheme.cyanAccent.opacity(0.3), lineWidth: 1)
+                )
             } else if let last = vm.activeSession?.messages.last {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("\(last.role.capitalized):")
-                        .font(.caption2.bold())
-                        .foregroundColor(.secondary)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(last.role == "user" ? "YOU:" : "WITNESS:")
+                        .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                        .foregroundColor(last.role == "user" ? WitnessTheme.amberAccent : WitnessTheme.cyanAccent)
                     Text(last.content)
-                        .font(.caption)
+                        .font(.system(size: 11.5))
+                        .foregroundColor(WitnessTheme.textSecondary)
                         .lineLimit(3)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(6)
-                .background(Color(NSColor.controlBackgroundColor))
-                .cornerRadius(6)
+                .padding(8)
+                .background(WitnessTheme.bgDeep)
+                .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(WitnessTheme.borderSubtle, lineWidth: 1)
+                )
+            } else {
+                Text("Presence active. Ask Witness anything.")
+                    .font(.system(size: 11))
+                    .foregroundColor(WitnessTheme.textMuted)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(8)
             }
             
-            // Quick input
-            HStack(spacing: 6) {
-                TextField("Ask Witness...", text: $quickPrompt)
-                    .textFieldStyle(.roundedBorder)
+            // Quick Command Surface
+            HStack(spacing: 8) {
+                TextField("Speak to Witness...", text: $quickPrompt)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 12))
+                    .padding(7)
+                    .background(WitnessTheme.bgDeep)
+                    .cornerRadius(6)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(WitnessTheme.borderSubtle, lineWidth: 1)
+                    )
                     .onSubmit {
                         submit()
                     }
                 
                 Button(action: submit) {
-                    Image(systemName: "arrow.up.circle.fill")
+                    Image(systemName: vm.isStreaming ? "stop.fill" : "arrow.up")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(WitnessTheme.bgDeep)
+                        .frame(width: 26, height: 26)
+                        .background(quickPrompt.isEmpty && !vm.isStreaming ? WitnessTheme.textMuted : WitnessTheme.cyanAccent)
+                        .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
-                .disabled(quickPrompt.isEmpty || vm.isStreaming)
+                .disabled(quickPrompt.isEmpty && !vm.isStreaming)
             }
         }
-        .padding(10)
+        .padding(14)
         .frame(width: 320)
+        .background(WitnessTheme.bgSurface)
     }
     
     private func submit() {

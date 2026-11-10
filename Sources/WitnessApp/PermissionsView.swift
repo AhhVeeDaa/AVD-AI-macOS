@@ -7,100 +7,175 @@ struct PermissionsView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header / Active Tier Setting
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Permission & Policy Enforcement")
-                    .font(.headline)
-                
-                Text("Witness strictly enforces a five-tier permission architecture. The core cannot self-grant elevated privileges without explicit user authorization.")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                
-                HStack(spacing: 16) {
-                    Text("Active Policy Tier:")
-                        .font(.body.bold())
-                    
-                    Picker("", selection: Binding(
-                        get: { vm.permissionTier },
-                        set: { vm.updatePermissionTier($0) }
-                    )) {
-                        ForEach(PermissionTier.allCases, id: \.self) { tier in
-                            Text(tier.rawValue).tag(tier)
-                        }
+            // Header & Active Policy Box
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("POLICY & PERMISSION TIERS")
+                            .font(.system(size: 13, weight: .bold, design: .monospaced))
+                            .tracking(1.5)
+                            .foregroundColor(WitnessTheme.textPrimary)
+                        Text("Strict non-escalation sandbox. The model cannot grant itself elevated permissions.")
+                            .font(.system(size: 11))
+                            .foregroundColor(WitnessTheme.textMuted)
                     }
-                    .pickerStyle(.menu)
-                    .frame(width: 160)
+                    Spacer()
                 }
                 
-                Text(vm.permissionTier.description)
-                    .font(.caption)
-                    .padding(8)
-                    .background(Color(NSColor.controlBackgroundColor))
-                    .cornerRadius(6)
+                // Tier Cards Grid
+                HStack(spacing: 8) {
+                    ForEach(PermissionTier.allCases, id: \.self) { tier in
+                        let isActive = vm.permissionTier == tier
+                        Button(action: { vm.updatePermissionTier(tier) }) {
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack {
+                                    Text(tier.rawValue)
+                                        .font(.system(size: 10.5, weight: .bold, design: .monospaced))
+                                        .foregroundColor(isActive ? tierColor(tier) : WitnessTheme.textSecondary)
+                                    Spacer()
+                                    if isActive {
+                                        Circle()
+                                            .fill(tierColor(tier))
+                                            .frame(width: 6, height: 6)
+                                    }
+                                }
+                                
+                                Text(shortDescription(tier))
+                                    .font(.system(size: 9.5))
+                                    .foregroundColor(WitnessTheme.textMuted)
+                                    .lineLimit(2)
+                                    .frame(minHeight: 24, alignment: .topLeading)
+                            }
+                            .padding(10)
+                            .background(isActive ? tierColor(tier).opacity(0.12) : WitnessTheme.bgSurface)
+                            .cornerRadius(8)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(isActive ? tierColor(tier).opacity(0.5) : WitnessTheme.borderSubtle, lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
             }
-            .padding()
-            .background(Color(NSColor.windowBackgroundColor))
+            .padding(20)
+            .background(WitnessTheme.bgSidebar)
             
             Divider()
+                .background(WitnessTheme.borderSubtle)
             
-            // Audit Log
+            // Audit Log Stream
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text("Permission Audit Trail (\(vm.auditRecords.count))")
-                        .font(.headline)
+                    Text("ACTIVITY & AUDIT TRAIL")
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .tracking(1.0)
+                        .foregroundColor(WitnessTheme.textMuted)
+                    
                     Spacer()
-                    Button("Clear Audit Log") {
+                    
+                    Button(action: {
                         PermissionEngine.shared.clearAuditLog()
                         vm.refreshState()
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "trash")
+                            Text("Clear Audit Log")
+                        }
+                        .font(.system(size: 10.5))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(WitnessTheme.bgElevated)
+                        .foregroundColor(WitnessTheme.textSecondary)
+                        .cornerRadius(5)
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.plain)
                 }
-                .padding([.top, .horizontal])
+                .padding(.horizontal, 20)
+                .padding(.top, 14)
                 
                 if vm.auditRecords.isEmpty {
                     VStack(spacing: 8) {
                         Image(systemName: "checkmark.shield")
-                            .font(.largeTitle)
-                            .foregroundColor(.secondary)
-                        Text("No audit events recorded yet.")
-                            .foregroundColor(.secondary)
+                            .font(.system(size: 32))
+                            .foregroundColor(WitnessTheme.textMuted.opacity(0.5))
+                        Text("No policy boundary evaluations logged yet.")
+                            .font(.system(size: 12))
+                            .foregroundColor(WitnessTheme.textMuted)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    List {
-                        ForEach(vm.auditRecords.reversed()) { rec in
-                            HStack(alignment: .top, spacing: 10) {
-                                Image(systemName: rec.approved ? "checkmark.circle.fill" : "xmark.octagon.fill")
-                                    .foregroundColor(rec.approved ? .green : .red)
-                                    .font(.title3)
-                                
-                                VStack(alignment: .leading, spacing: 4) {
-                                    HStack {
-                                        Text(rec.requestedTier.rawValue)
-                                            .font(.caption.bold())
-                                            .foregroundColor(rec.approved ? .primary : .red)
-                                        Text("•")
-                                            .foregroundColor(.secondary)
-                                        Text(rec.actionDescription)
-                                            .font(.subheadline)
-                                        Spacer()
-                                        Text(rec.timestamp, style: .time)
-                                            .font(.caption2)
-                                            .foregroundColor(.secondary)
+                    ScrollView {
+                        LazyVStack(spacing: 8) {
+                            ForEach(vm.auditRecords.reversed()) { rec in
+                                HStack(alignment: .top, spacing: 10) {
+                                    ZStack {
+                                        Circle()
+                                            .fill((rec.approved ? WitnessTheme.emeraldSignal : WitnessTheme.redAlert).opacity(0.15))
+                                            .frame(width: 24, height: 24)
+                                        
+                                        Image(systemName: rec.approved ? "checkmark" : "xmark")
+                                            .font(.system(size: 10, weight: .bold))
+                                            .foregroundColor(rec.approved ? WitnessTheme.emeraldSignal : WitnessTheme.redAlert)
                                     }
                                     
-                                    if !rec.notes.isEmpty {
-                                        Text(rec.notes)
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        HStack(spacing: 6) {
+                                            Text(rec.requestedTier.rawValue)
+                                                .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                                                .foregroundColor(tierColor(rec.requestedTier))
+                                            Text("•")
+                                                .foregroundColor(WitnessTheme.textMuted.opacity(0.4))
+                                            Text(rec.actionDescription)
+                                                .font(.system(size: 12, weight: .medium))
+                                                .foregroundColor(WitnessTheme.textPrimary)
+                                            Spacer()
+                                            Text(rec.timestamp, style: .time)
+                                                .font(.system(size: 9.5))
+                                                .foregroundColor(WitnessTheme.textMuted)
+                                        }
+                                        
+                                        if !rec.notes.isEmpty {
+                                            Text(rec.notes)
+                                                .font(.system(size: 11))
+                                                .foregroundColor(WitnessTheme.textSecondary)
+                                        }
                                     }
                                 }
+                                .padding(10)
+                                .background(WitnessTheme.bgSurface)
+                                .cornerRadius(8)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(WitnessTheme.borderSubtle, lineWidth: 1)
+                                )
                             }
-                            .padding(.vertical, 4)
                         }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
                     }
                 }
             }
+        }
+    }
+    
+    private func tierColor(_ tier: PermissionTier) -> Color {
+        switch tier {
+        case .observe: return WitnessTheme.cyanAccent
+        case .assist: return WitnessTheme.emeraldSignal
+        case .execute: return WitnessTheme.amberAccent
+        case .restricted: return Color(red: 0.95, green: 0.50, blue: 0.30)
+        case .prohibited: return WitnessTheme.redAlert
+        }
+    }
+    
+    private func shortDescription(_ tier: PermissionTier) -> String {
+        switch tier {
+        case .observe: return "Read-only system inspection"
+        case .assist: return "Dialogue & non-destructive help"
+        case .execute: return "Run shell & approved actions"
+        case .restricted: return "Elevated per-call prompts"
+        case .prohibited: return "Full security lockdown"
         }
     }
 }
