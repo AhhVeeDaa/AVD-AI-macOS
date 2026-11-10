@@ -2,10 +2,29 @@
 import PackageDescription
 
 let package = Package(
-    name: "avd-ai-macos",
+    name: "Witness",
+    platforms: [
+        .macOS(.v14)
+    ],
+    products: [
+        .library(name: "AVDCore", targets: ["AVDCore"]),
+        .executable(name: "WitnessApp", targets: ["WitnessApp"])
+    ],
     dependencies: [],
     targets: [
-        .executableTarget(name: "AVDCore", path: "Sources/AVDCore"),
-        .executableTarget(name: "WitnessApp", path: "Sources/WitnessApp")
+        .target(
+            name: "AVDCore",
+            path: "Sources/AVDCore"
+        ),
+        .executableTarget(
+            name: "WitnessApp",
+            dependencies: ["AVDCore"],
+            path: "Sources/WitnessApp"
+        ),
+        .testTarget(
+            name: "AVDCoreTests",
+            dependencies: ["AVDCore"],
+            path: "Tests/AVDCoreTests"
+        )
     ]
 )
