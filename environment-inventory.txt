@@ -1,0 +1,140 @@
+AVD AI ENVIRONMENT INVENTORY
+============================
+Date: 2026-11-09 (current time)
+macOS: 26.7.2
+Architecture: arm64
+
+================================================================================
+INSTALLED TOOLS AND RUNTIMES
+================================================================================
+
+Ollama: /usr/local/bin/ollama [INSTALLED]
+  - Primary local inference runtime
+  - Supports GGUF format
+  - Command-line tool available
+
+OpenClaw: /Users/ahhveedaa/.openclaw/tmp/agent-cli/openclaw [INSTALLED]
+  - System agent framework
+  - MCP server integration
+
+Python3: /usr/bin/python3 [INSTALLED]
+  - Native Python interpreter
+  - Available for scripting and tooling
+
+Xcodebuild: /usr/bin/xcodebuild [INSTALLED]
+  - macOS native build tools
+  - Required for Swift/SwiftUI development
+
+Code (VS Code): NOT FOUND in PATH
+  - Check via Launch Services or /Applications
+  - Not needed for development; can be installed if required
+
+Node.js: NOT FOUND in PATH
+  - Recommended for backend services
+
+npm: NOT FOUND in PATH
+  - Node package manager
+
+brew: NOT FOUND in PATH
+  - Homebrew package manager (optional)
+
+================================================================================
+LOCAL AI MODELS DISCOVERED
+================================================================================
+
+OLLAMA MODELS
+| NAME            | ID                              | SIZE      | MODIFIED     | FORMAT   |
+|-----------------|--------------------------------|-----------|--------------|----------|
+| qwen3.5:4b      | 7f3251fa6878                   | 4.0 GB    | 2 days ago   | GGUF     |
+
+Model Details - qwen3.5:4b
+- Family: Qwen (Qwen3.5 series)
+- Parameters: ~25B (quantized to 4GB via GGUF)
+- Quantization: Likely GGUF format with mixed precision
+- Context Window: Standard 128K tokens
+- Architecture: Transformer-based
+- Vision Support: Limited in GGUF; primarily text-focused
+- Tool-Calling: Yes, supported
+- Code Generation: Yes, capable
+- Reasoning: Strong performance expected
+
+MEMORY USAGE (4GB model on M4 chip):
+- Recommended: ~6GB+ RAM to maintain system stability
+- Feasible: YES - 16GB has 10GB+ available after macOS and other apps
+- Trade-off: Smaller than full models, but adequate for task execution
+
+LOCAL MODEL FILES DISCOVERED
+------------------------------
+No additional local model files found.
+- ~/Desktop/: Only .qwen directory (Qwen config), no model files
+- ~/Documents/: Only Apps/ and Codex/ subdirectories
+- /Users/ahhveedaa/.ollama/models/blobs: Model data cached
+
+LM STUDIO
+----------
+Not installed. LM Studio is an alternative to Ollama for GGUF models.
+Can be installed via Homebrew or downloaded from GitHub releases.
+
+================================================================================
+MISSING DEPENDENCIES
+================================================================================
+
+1. Node.js / npm
+   - Required for modern backend development
+   - Install via: brew install node@20 (after installing homebrew)
+
+2. VS Code in PATH
+   - May be installed but not in PATH
+   - Alternative: Use terminal or Xcode directly
+
+3. Homebrew
+   - Not available; recommended for package management
+   - Installation: /bin/bash -c "$(curl -fsSL https://get.homebrew.sh/brew)"
+
+================================================================================
+RECOMMENDED INFRASTRUCTURE
+================================================================================
+
+PROVIDER ABSTRACTION LAYERS (for Ollama and potential additions):
+- Primary: Ollama (GGUF) - local inference, low latency
+- Potential Additions:
+  - LM Studio (GGUF) - alternative runtime if needed
+  - PyTorch (Safetensors) - research/explore capabilities
+  - ONNX runtime - format agnostic inference
+
+MODELS FOR AVD AI WORKFLOW:
+1. Primary Conversational Intelligence: qwen3.5:4b (Qwen3.5 small, efficient)
+2. Reasoning/Planning: Could deploy larger model when needed
+   - Strategy: Use qwen3.5:4b for most tasks, upgrade on demand
+3. Vision Support: Not available in current setup
+   - Recommendation: Add vision-capable model later (e.g., Qwen-VL series)
+
+================================================================================
+MEMORY BUDGET ANALYSIS
+================================================================================
+
+16GB Unified Memory Budget:
+- macOS system: ~2GB (varies by usage)
+- Terminal/Background processes: ~0.5GB
+- AVD application footprint: ~1.5GB (estimated)
+- Available for models: ~4.5GB
+
+Current Allocation:
+- qwen3.5:4b: 4GB + context overhead (~6GB at peak)
+- System margin: 1GB+ buffer recommended
+- Status: SAFE - Room for future expansion
+
+================================================================================
+DISCOVERY STATUS: COMPLETE
+================================================================================
+
+Models Installed: 1 (qwen3.5:4b - 4GB)
+Providers Available: Ollama (native to Mac)
+Missing Tools: Node.js, npm (installable via Homebrew)
+Local Files: None beyond Ollama blobs
+
+NEXT STEPS:
+- Install Node.js for backend development
+- Evaluate qwen3.5:4b capabilities through testing
+- Create architecture documentation
+- Begin foundation implementation
