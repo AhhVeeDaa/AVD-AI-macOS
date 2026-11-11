@@ -11,6 +11,14 @@ public enum PresenceState: String, CaseIterable, Sendable {
     case paused = "PAUSED"
 }
 
+public enum AudioPermissionState: String, CaseIterable, Sendable {
+    case notDetermined = "Not Determined"
+    case authorized = "Authorized"
+    case denied = "Denied"
+    case restricted = "Restricted"
+    case unavailable = "Unavailable"
+}
+
 @MainActor
 public final class VoiceManager: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     public static let shared = VoiceManager()
@@ -29,16 +37,20 @@ public final class VoiceManager: NSObject, ObservableObject, AVSpeechSynthesizer
     @Published public var availableVoices: [AVSpeechSynthesisVoice] = []
     @Published public var lastSpokenResponse: String = ""
     
-    // Speech Recognition (Speech-To-Text)
+    // Speech Recognition & Microphone Permissions
     private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
     private let audioEngine = AVAudioEngine()
+    private var isAudioEngineRunning: Bool = false
     
     @Published public var isListening: Bool = false
     @Published public var transcribedText: String = ""
     @Published public var recognitionAvailable: Bool = false
-    @Published public var permissionStatus: String = "Not Requested"
+    @Published public var microphonePermission: AudioPermissionState = .notDetermined
+    @Published public var speechPermission: AudioPermissionState = .notDetermined
+    @Published public var permissionStatus: String = "Not Determined"
+    @Published public var permissionGuidanceMessage: String = ""
     
     // Sentence buffer for streaming speech
     private var pendingSpeechBuffer: String = ""
@@ -51,6 +63,59 @@ public final class VoiceManager: NSObject, ObservableObject, AVSpeechSynthesizer
             self.selectedVoiceIdentifier = defaultVoice.identifier
         }
         self.recognitionAvailable = speechRecognizer?.isAvailable ?? false
+        refreshPermissionStates()
+    }
+    
+    public func refreshPermissionStates() {
+        // 1. Check Speech Recognition Authorization
+        switch SFSpeechRecognizer.authorizationStatus() {
+        case .authorized:
+            speechPermission = .authorized
+        case .denied:
+            speechPermission = .denied
+        case .restricted:
+            speechPermission = .restricted
+        case .notDetermined:
+            speechPermission = .notDetermined
+        @unknown default:
+            speechPermission = .unavailable
+        }
+        
+        // 2. Check Microphone Authorization via AVCaptureDevice
+        switch AVCaptureDevice.authorizationStatus(for: .audio) {
+        case .authorized:
+            microphonePermission = .authorized
+        case .denied:
+            microphonePermission = .denied
+        case .restricted:
+            microphonePermission = .restricted
+        case .notDetermined:
+            microphonePermission = .notDetermined
+        @unknown default:
+            microphonePermission = .unavailable
+        }
+        
+        updatePermissionGuidance()
+    }
+    
+    private func updatePermissionGuidance() {
+        if microphonePermission == .authorized && speechPermission == .authorized {
+            permissionStatus = "Authorized"
+            permissionGuidanceMessage = ""
+            recognitionAvailable = speechRecognizer?.isAvailable ?? false
+        } else if microphonePermission == .denied || speechPermission == .denied {
+            permissionStatus = "Denied"
+            permissionGuidanceMessage = "Microphone or Speech Recognition was denied. Open System Settings → Privacy & Security → Microphone / Speech Recognition to enable Witness."
+            recognitionAvailable = false
+        } else if microphonePermission == .restricted || speechPermission == .restricted {
+            permissionStatus = "Restricted"
+            permissionGuidanceMessage = "Audio permissions are restricted by parental controls or device management."
+            recognitionAvailable = false
+        } else {
+            permissionStatus = "Not Determined"
+            permissionGuidanceMessage = "Click 'Enable Microphone & Speech' to grant local audio authorization."
+            recognitionAvailable = false
+        }
     }
     
     // MARK: - Speech Synthesis (Speaking)
@@ -80,7 +145,6 @@ public final class VoiceManager: NSObject, ObservableObject, AVSpeechSynthesizer
         }
     }
     
-    /// Buffers streaming text and speaks completed sentences progressively
     public func appendStreamingSpeech(token: String) {
         pendingSpeechBuffer += token
         
@@ -166,36 +230,69 @@ public final class VoiceManager: NSObject, ObservableObject, AVSpeechSynthesizer
         }
     }
     
-    // MARK: - Speech Recognition (Listening & Real Amplitude Tracking)
+    // MARK: - Safe Permission Request Lifecycle
     
-    public func requestPermissions() {
-        SFSpeechRecognizer.requestAuthorization { authStatus in
+    public func requestPermissions(completion: (@Sendable @MainActor (Bool) -> Void)? = nil) {
+        // Step 1: Request Microphone Access via AVCaptureDevice
+        AVCaptureDevice.requestAccess(for: .audio) { [weak self] micGranted in
             Task { @MainActor in
-                switch authStatus {
-                case .authorized:
-                    self.permissionStatus = "Authorized"
-                    self.recognitionAvailable = true
-                case .denied:
-                    self.permissionStatus = "Microphone / Speech Denied"
-                    self.recognitionAvailable = false
-                    self.presenceState = .error
-                case .restricted:
-                    self.permissionStatus = "Restricted on this Mac"
-                    self.recognitionAvailable = false
-                    self.presenceState = .error
-                case .notDetermined:
-                    self.permissionStatus = "Not Determined"
-                    self.recognitionAvailable = false
-                @unknown default:
-                    self.permissionStatus = "Unknown"
+                guard let self = self else { return }
+                self.microphonePermission = micGranted ? .authorized : .denied
+                
+                guard micGranted else {
+                    self.updatePermissionGuidance()
+                    completion?(false)
+                    return
+                }
+                
+                // Step 2: Request Speech Recognition Access
+                SFSpeechRecognizer.requestAuthorization { [weak self] authStatus in
+                    Task { @MainActor in
+                        guard let self = self else { return }
+                        switch authStatus {
+                        case .authorized:
+                            self.speechPermission = .authorized
+                        case .denied:
+                            self.speechPermission = .denied
+                        case .restricted:
+                            self.speechPermission = .restricted
+                        case .notDetermined:
+                            self.speechPermission = .notDetermined
+                        @unknown default:
+                            self.speechPermission = .unavailable
+                        }
+                        self.updatePermissionGuidance()
+                        let fullyAuthorized = (self.microphonePermission == .authorized && self.speechPermission == .authorized)
+                        completion?(fullyAuthorized)
+                    }
                 }
             }
         }
     }
     
+    // MARK: - Speech Recognition (Listening & Safe Audio Engine Lifecycle)
+    
     public func startListening() {
+        // Prevent overlapping listening sessions or execution when muted
         guard !isListening, !audioMuted else { return }
+        
+        // Immediately halt any speaking before attempting to access audio input
         stopSpeaking()
+        
+        // Verify permissions before touching hardware to prevent TCC termination
+        refreshPermissionStates()
+        guard microphonePermission == .authorized && speechPermission == .authorized else {
+            if microphonePermission == .notDetermined || speechPermission == .notDetermined {
+                requestPermissions { [weak self] granted in
+                    if granted {
+                        self?.startListening()
+                    }
+                }
+            } else {
+                self.presenceState = .error
+            }
+            return
+        }
         
         guard let speechRecognizer = speechRecognizer, speechRecognizer.isAvailable else {
             self.permissionStatus = "Speech recognizer offline or unavailable"
@@ -203,60 +300,64 @@ public final class VoiceManager: NSObject, ObservableObject, AVSpeechSynthesizer
             return
         }
         
-        let node = audioEngine.inputNode
-        let recordingFormat = node.outputFormat(forBus: 0)
+        cleanupAudioEngine()
         
-        recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
-        guard let recognitionRequest = recognitionRequest else { return }
-        
-        if speechRecognizer.supportsOnDeviceRecognition {
-            recognitionRequest.requiresOnDeviceRecognition = true
-        }
-        recognitionRequest.shouldReportPartialResults = true
-        
-        transcribedText = ""
-        isListening = true
-        presenceState = .listening
-        
-        recognitionTask = speechRecognizer.recognitionTask(with: recognitionRequest) { [weak self] result, error in
-            guard let self = self else { return }
-            Task { @MainActor in
-                if let result = result {
-                    self.transcribedText = result.bestTranscription.formattedString
-                }
-                if error != nil || result?.isFinal == true {
-                    self.stopListening()
-                }
-            }
-        }
-        
-        // Audio tap calculates real RMS amplitude for fluid visualizer reaction
-        node.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
-            guard let self = self else { return }
-            self.recognitionRequest?.append(buffer)
-            
-            // Calculate Root Mean Square (RMS) amplitude
-            guard let channelData = buffer.floatChannelData?[0] else { return }
-            let frameLength = Int(buffer.frameLength)
-            var sum: Float = 0.0
-            for i in 0..<frameLength {
-                let sample = channelData[i]
-                sum += sample * sample
-            }
-            let rms = sqrt(sum / Float(max(1, frameLength)))
-            // Scale and clamp between 0.0 and 1.0 with natural logarithmic curve
-            let normalized = CGFloat(min(1.0, max(0.0, rms * 8.0)))
-            
-            Task { @MainActor in
-                self.audioAmplitude = normalized
-            }
-        }
-        
-        audioEngine.prepare()
         do {
+            let node = audioEngine.inputNode
+            let recordingFormat = node.outputFormat(forBus: 0)
+            guard recordingFormat.sampleRate > 0 else {
+                self.presenceState = .error
+                return
+            }
+            
+            recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
+            guard let recognitionRequest = recognitionRequest else { return }
+            
+            if speechRecognizer.supportsOnDeviceRecognition {
+                recognitionRequest.requiresOnDeviceRecognition = true
+            }
+            recognitionRequest.shouldReportPartialResults = true
+            
+            transcribedText = ""
+            isListening = true
+            presenceState = .listening
+            
+            recognitionTask = speechRecognizer.recognitionTask(with: recognitionRequest) { [weak self] result, error in
+                guard let self = self else { return }
+                Task { @MainActor in
+                    if let result = result {
+                        self.transcribedText = result.bestTranscription.formattedString
+                    }
+                    if error != nil || result?.isFinal == true {
+                        self.stopListening()
+                    }
+                }
+            }
+            
+            node.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
+                guard let self = self else { return }
+                self.recognitionRequest?.append(buffer)
+                
+                guard let channelData = buffer.floatChannelData?[0] else { return }
+                let frameLength = Int(buffer.frameLength)
+                var sum: Float = 0.0
+                for i in 0..<frameLength {
+                    let sample = channelData[i]
+                    sum += sample * sample
+                }
+                let rms = sqrt(sum / Float(max(1, frameLength)))
+                let normalized = CGFloat(min(1.0, max(0.0, rms * 8.0)))
+                
+                Task { @MainActor in
+                    self.audioAmplitude = normalized
+                }
+            }
+            
+            audioEngine.prepare()
             try audioEngine.start()
+            isAudioEngineRunning = true
         } catch {
-            stopListening()
+            cleanupAudioEngine()
             self.permissionStatus = "Audio engine error: \(error.localizedDescription)"
             self.presenceState = .error
         }
@@ -264,17 +365,24 @@ public final class VoiceManager: NSObject, ObservableObject, AVSpeechSynthesizer
     
     public func stopListening() {
         guard isListening else { return }
-        audioEngine.stop()
-        audioEngine.inputNode.removeTap(onBus: 0)
-        recognitionRequest?.endAudio()
-        recognitionRequest = nil
-        recognitionTask?.cancel()
-        recognitionTask = nil
+        cleanupAudioEngine()
         isListening = false
         audioAmplitude = 0.0
         if presenceState == .listening {
             presenceState = .idle
         }
+    }
+    
+    private func cleanupAudioEngine() {
+        if isAudioEngineRunning {
+            audioEngine.stop()
+            isAudioEngineRunning = false
+        }
+        audioEngine.inputNode.removeTap(onBus: 0)
+        recognitionRequest?.endAudio()
+        recognitionRequest = nil
+        recognitionTask?.cancel()
+        recognitionTask = nil
     }
     
     public func toggleMute() {
