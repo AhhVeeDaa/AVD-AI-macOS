@@ -10,14 +10,16 @@ struct CompactCompanionView: View {
         VStack(spacing: 10) {
             // Header Bar
             HStack(spacing: 8) {
+                WitnessKanjiMark(size: 16, glowColor: WitnessTheme.cyanAccent)
+                
                 ZStack {
                     Circle()
                         .fill(vm.isConnected ? WitnessTheme.emeraldSignal.opacity(0.2) : WitnessTheme.amberAccent.opacity(0.2))
-                        .frame(width: 18, height: 18)
+                        .frame(width: 14, height: 14)
                     
                     Circle()
                         .fill(vm.isConnected ? WitnessTheme.emeraldSignal : WitnessTheme.amberAccent)
-                        .frame(width: 7, height: 7)
+                        .frame(width: 6, height: 6)
                 }
                 
                 Text("WITNESS")

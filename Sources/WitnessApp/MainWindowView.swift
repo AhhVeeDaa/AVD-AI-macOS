@@ -45,20 +45,27 @@ struct MainWindowView: View {
     // MARK: - Sidebar
     private var sidebarContent: some View {
         VStack(spacing: 0) {
-            // Branded Top Header
+            // Branded Top Header with Kanji Artwork
             HStack(spacing: 10) {
                 ZStack {
-                    Circle()
-                        .fill(WitnessTheme.cyanAccent.opacity(0.15))
-                        .frame(width: 32, height: 32)
-                    Image(systemName: "hexagon.fill")
-                        .font(.system(size: 15))
-                        .foregroundColor(WitnessTheme.cyanAccent)
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(WitnessTheme.cyanAccent.opacity(0.12))
+                        .frame(width: 34, height: 34)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(WitnessTheme.cyanAccent.opacity(0.35), lineWidth: 1)
+                        )
+                    WitnessKanjiMark(size: 24, glowColor: WitnessTheme.cyanAccent)
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("WITNESS")
-                        .font(.system(size: 13, weight: .black, design: .monospaced))
-                        .foregroundColor(WitnessTheme.textPrimary)
+                    HStack(spacing: 4) {
+                        Text("WITNESS")
+                            .font(.system(size: 13, weight: .black, design: .monospaced))
+                            .foregroundColor(WitnessTheme.textPrimary)
+                        Text("見")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(WitnessTheme.cyanAccent.opacity(0.75))
+                    }
                     Text("AVD CONTINUITY v1.6")
                         .font(.system(size: 8.5, weight: .bold, design: .monospaced))
                         .foregroundColor(WitnessTheme.cyanAccent)

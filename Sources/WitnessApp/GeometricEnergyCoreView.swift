@@ -85,11 +85,16 @@ public struct GeometricEnergyCoreView: View {
                     .shadow(color: baseColor, radius: glowRadius)
                     .scaleEffect(coreScale)
                 
-                // State Glyph Indicator in Center
-                Image(systemName: stateGlyph)
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(WitnessTheme.bgDeep)
-                    .scaleEffect(coreScale * 0.85)
+                // Centered Identity Kanji Seal 見 (or animated state glyph)
+                if state == .idle || state == .contemplating {
+                    WitnessKanjiMark(size: 32, glowColor: WitnessTheme.bgDeep)
+                        .scaleEffect(coreScale * 0.9)
+                } else {
+                    Image(systemName: stateGlyph)
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(WitnessTheme.bgDeep)
+                        .scaleEffect(coreScale * 0.85)
+                }
             }
         }
     }

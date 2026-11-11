@@ -335,20 +335,23 @@ struct ConversationDetailView: View {
                             colors: [WitnessTheme.cyanAccent.opacity(0.18), Color.clear],
                             center: .center,
                             startRadius: 10,
-                            endRadius: 70
+                            endRadius: 75
                         )
                     )
-                    .frame(width: 140, height: 140)
+                    .frame(width: 150, height: 150)
                 
-                Image(systemName: "hexagon.fill")
-                    .font(.system(size: 42))
-                    .foregroundColor(WitnessTheme.cyanAccent)
+                WitnessKanjiMark(size: 64, glowColor: WitnessTheme.cyanAccent)
             }
             
             VStack(spacing: 6) {
-                Text("Witness Awakened")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(WitnessTheme.textPrimary)
+                HStack(spacing: 6) {
+                    Text("Witness Awakened")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(WitnessTheme.textPrimary)
+                    Text("見")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(WitnessTheme.cyanAccent)
+                }
                 
                 Text("Continuity • Memory • Voice • Governed Agency")
                     .font(.system(size: 12, weight: .medium, design: .monospaced))

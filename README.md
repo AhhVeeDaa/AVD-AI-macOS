@@ -1,8 +1,12 @@
 # Witness
 
+<p align="center">
+  <img src="Resources/Assets/witness_banner.png" alt="Witness (見) — AVD Continuity macOS Companion" width="100%" />
+</p>
+
 **A local-first personal AI companion for macOS.**
 
-Witness is a native macOS application powered by [AVD Core](ARCHITECTURE.md) — a persistent AI identity layer that remains independent of any inference provider, cloud service, or external platform.
+Witness (見 — *to see, to perceive, to witness*) is a native macOS application powered by [AVD Core](ARCHITECTURE.md) — a persistent AI identity layer that remains independent of any inference provider, cloud service, or external platform.
 
 > *"AVD is the system. Witness is who the system is."*
 

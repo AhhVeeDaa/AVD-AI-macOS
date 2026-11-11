@@ -33,7 +33,9 @@ struct PresenceView: View {
             VStack(spacing: 24) {
                 // Top Bar
                 HStack(spacing: 12) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 8) {
+                        WitnessKanjiMark(size: 20, glowColor: stateIndicatorColor)
+                        
                         Circle()
                             .fill(stateIndicatorColor)
                             .frame(width: 7, height: 7)
