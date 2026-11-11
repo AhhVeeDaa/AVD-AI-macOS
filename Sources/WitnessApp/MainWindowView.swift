@@ -51,48 +51,44 @@ struct MainWindowView: View {
                     Circle()
                         .fill(WitnessTheme.cyanAccent.opacity(0.15))
                         .frame(width: 32, height: 32)
-                    
                     Image(systemName: "hexagon.fill")
                         .font(.system(size: 15))
                         .foregroundColor(WitnessTheme.cyanAccent)
                 }
-                
                 VStack(alignment: .leading, spacing: 2) {
                     Text("WITNESS")
                         .font(.system(size: 13, weight: .black, design: .monospaced))
                         .foregroundColor(WitnessTheme.textPrimary)
-                    
                     Text("AVD CONTINUITY v1.6")
                         .font(.system(size: 8.5, weight: .bold, design: .monospaced))
                         .foregroundColor(WitnessTheme.cyanAccent)
                 }
-                
                 Spacer()
-                
-                // Presence Mode Switcher Pill
-                Button(action: {
-                    vm.activeInteractionMode = .presence
-                }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "waveform")
-                        Text("PRESENCE")
-                    }
-                    .font(.system(size: 9.5, weight: .bold, design: .monospaced))
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 4)
-                    .background(WitnessTheme.cyanAccent.opacity(0.15))
-                    .foregroundColor(WitnessTheme.cyanAccent)
-                    .cornerRadius(6)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .stroke(WitnessTheme.cyanAccent.opacity(0.3), lineWidth: 1)
-                    )
-                }
-                .buttonStyle(.plain)
-                .help("Switch to Immersive Presence Mode (Cmd+P)")
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 14)
+            .padding(.top, 14)
+            .padding(.bottom, 10)
+
+            // ── Mode Toggle (prominent, always visible) ──────────────────
+            HStack(spacing: 0) {
+                modeToggleButton(
+                    label: "TEXT",
+                    icon: "text.bubble.fill",
+                    isActive: vm.activeInteractionMode == .text,
+                    action: { vm.activeInteractionMode = .text }
+                )
+                modeToggleButton(
+                    label: "PRESENCE",
+                    icon: "waveform.circle.fill",
+                    isActive: vm.activeInteractionMode == .presence,
+                    action: { vm.activeInteractionMode = .presence }
+                )
+            }
+            .background(WitnessTheme.bgDeep)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(WitnessTheme.borderSubtle, lineWidth: 1))
+            .padding(.horizontal, 12)
+            .padding(.bottom, 10)
             
             // Navigation Section
             VStack(spacing: 2) {
@@ -259,5 +255,32 @@ struct MainWindowView: View {
         case .settings:
             SettingsView(vm: vm)
         }
+    }
+
+    // MARK: - Mode Toggle Helper
+    @ViewBuilder
+    private func modeToggleButton(label: String, icon: String, isActive: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                Image(systemName: icon)
+                    .font(.system(size: 12, weight: .semibold))
+                Text(label)
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 7)
+            .background(isActive ? WitnessTheme.cyanAccent.opacity(0.18) : Color.clear)
+            .foregroundColor(isActive ? WitnessTheme.cyanAccent : WitnessTheme.textMuted)
+            .overlay(
+                // Active underline indicator
+                VStack {
+                    Spacer()
+                    Rectangle()
+                        .fill(isActive ? WitnessTheme.cyanAccent : Color.clear)
+                        .frame(height: 2)
+                }
+            )
+        }
+        .buttonStyle(.plain)
     }
 }

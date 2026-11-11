@@ -58,6 +58,36 @@ struct ConversationDetailView: View {
                     )
                 }
                 .buttonStyle(.plain)
+
+                // Immersive Voice & Energy Orb Mode Button
+                Button(action: {
+                    vm.activeInteractionMode = .presence
+                }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "waveform.circle.fill")
+                            .font(.system(size: 13, weight: .semibold))
+                        Text("VOICE ORB MODE")
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(
+                        LinearGradient(
+                            colors: [WitnessTheme.cyanAccent.opacity(0.25), WitnessTheme.cyanAccent.opacity(0.1)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .foregroundColor(WitnessTheme.cyanAccent)
+                    .cornerRadius(6)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(WitnessTheme.cyanAccent.opacity(0.5), lineWidth: 1)
+                    )
+                    .shadow(color: WitnessTheme.cyanAccent.opacity(0.2), radius: 4, x: 0, y: 0)
+                }
+                .buttonStyle(.plain)
+                .help("Switch to Immersive Voice & Energy Core Orb Mode (Cmd+P)")
                 
                 // Clear / New Session
                 Button(action: { vm.createNewSession() }) {
