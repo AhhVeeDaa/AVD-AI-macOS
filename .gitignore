@@ -1,0 +1,46 @@
+# Build artifacts (generated, not tracked)
+.build/
+build/
+DerivedData/
+*.o
+*.d
+
+# Xcode
+*.xcuserstate
+*.xcuserdatad/
+xcuserdata/
+*.xcworkspace/xcuserdata/
+*.pbxuser
+*.perspectivev3
+.xcode.env.local
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V8
+.Trashes
+
+# Release artifacts (generated, not tracked)
+*.zip
+*.dmg
+*.pkg
+WitnessStandalone
+
+# Sensitive / generated
+*.env
+*.pem
+*.key
+secrets.json
+*.xcconfig.local
+
+# Swift Package Manager
+.swiftpm/
+
+# Temporary / editor
+*.log
+.idea/
+*.swp
+*.bak
+"Podfile (not applicable for SwiftPM) -> Package.swift"

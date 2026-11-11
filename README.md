@@ -1,207 +1,145 @@
-# WITNESS — Native macOS Application (Version 1.0.0)
+# Witness
 
-## **Persistent Digital Companion | Identity Before Model**
+**A local-first personal AI companion for macOS.**
 
-Witness is an actual native macOS application built with AVD Core architecture, operating independently of OpenClaw. A persistent identity AI assistant with local-inference-first operation and privacy-by-design principles.
+Witness is a native macOS application powered by [AVD Core](ARCHITECTURE.md) — a persistent AI identity layer that remains independent of any inference provider, cloud service, or external platform.
 
----
-
-## 📋 Product Identity
-
-| Attribute | Value |
-|-----------|-------|
-| **Name** | Witness |
-| **Version** | 1.0.0 |
-| **Developer** | La Vie Tech Ltd |
-| **Product Owner** | Avida Buyombo |
-| **Platform** | macOS (Apple Silicon M4) |
-| **Architecture** | Swift/SwiftUI Native Application |
+> *"AVD is the system. Witness is who the system is."*
 
 ---
 
-## 🎯 Design Philosophy
+## Philosophy
 
-- **Identity before model** — Persistent identity is the foundation
-- **Continuity before conversation** — Memory persists across sessions
-- **Presence before performance** — Always available, not just responding
-- **Truth before comfort** — Honest, direct communication style
-- **Love as action** — Purposeful assistance without unnecessary fluff
+Witness is built on three principles:
 
----
-
-## 🏗️ Architecture Overview
-
-### Core Components (Independent of OpenClaw)
-
-```
-┌─────────────────────────────────┐
-│     Witness Identity Layer      │  → Persitsent identity, values
-├─────────────────────────────────┤
-│        AVD Core                 │  → Orchestration & routing
-├─────────────────────────────────┤
-│       Memory Engine             │  → Four-tier adaptive memory
-├─────────────────────────────────┤
-│     Model Routing Abstraction   │  → Local-inference-first
-├─────────────────────────────────┤
-│      Permission Enforcement     │  → Five-tier policy engine
-├─────────────────────────────────┤
-│        Native Swift Execution   │  → Direct API calls to Ollama
-└─────────────────────────────────┘
-```
+1. **Local-first.** All inference, memory, and identity run on your Mac. Nothing is sent to the cloud.
+2. **Identity persistence.** Witness maintains a consistent character, values, and memory across conversations — independent of the model used.
+3. **Governed agency.** Witness can use tools and capabilities on your machine, but every action is subject to a five-tier permission system that you control.
 
 ---
 
-## 📁 Project Structure
+## Requirements
 
-```
-/Users/ahhveedaa/.openclaw/workspace/AVD-AI-macOS/
-├── Sources/
-│   ├── AVDCore/
-│   │   ├── Identity.swift       # Witness identity persistence
-│   │   ├── Core.swift           # Central orchestrator
-│   │   ├── Memory.swift         # Four-tier memory system
-│   │   ├── ModelRouting.swift   # Local-inference routing
-│   │   └── Permissions.swift    # Five-tier policy engine
-│   ├── WitnessApp/
-│   │   ├── Main.swift           # Application entry point
-│   │   ├── OllamaIntegration.swift  # Native API client
-│   │   └── SwiftUI Views (coming)
-│   └── VoicePerception.swift    # Microphone integration
-├── README.md                    # This file
-├── Phase1_Baseline_Report.md    # Environment status
-└── ARCHITECTURE.md             # Full design specification
-```
+| Requirement | Minimum |
+|---|---|
+| macOS | 14.0 (Sonoma) |
+| Architecture | Apple Silicon (M-series) |
+| RAM | 8 GB (16 GB recommended) |
+| Disk | 500 MB + model storage |
+| Ollama | Latest (https://ollama.com) |
+| Model | `qwen3.5:4b` (default) |
 
 ---
 
-## 🚀 Quick Start — Installation Guide
+## Quick Start
 
-### Prerequisites
-- macOS 13+ ( Ventura / Sonoma / Sequordia / etc. )
-- M1/M2/M3/M4 Apple Silicon chip preferred
-- Xcode installed or available via Mac App Store
-- Ollama runtime with qwen3.5:4b model (verified in environment inventory)
-
-### Step 1: Build the Application
+### 1. Install Ollama
 
 ```bash
-cd /Users/ahhveedaa/.openclaw/workspace/AVD-AI-macOS
-
-# Verify Ollama is running
-ollama list | grep qwen3.5:4b
-
-# Build with Xcode (requires Xcode installation)
-xcodebuild -project Witness.xcodeproj -configuration Debug build
-
-# Or use Swift Package Manager (if supported by your Xcode version)
-swift build
+brew install ollama
+ollama pull qwen3.5:4b
+ollama serve
 ```
 
-### Step 2: Run the Application
+Or download from https://ollama.com.
+
+### 2. Install Witness
+
+Download `Witness-v1.6.1-macOS.dmg` from [Releases](../../releases) and drag Witness to your Applications folder.
+
+> **Note:** Witness is ad-hoc signed (not notarized). On first launch, right-click → Open to bypass Gatekeeper.
+
+### 3. Grant Permissions
+
+Witness requires:
+- **Microphone** — for push-to-talk voice input in Presence Mode
+- **Speech Recognition** — for on-device transcription
+
+macOS will prompt for these on first use. If you accidentally deny them, grant access via:
+`System Settings → Privacy & Security → Microphone / Speech Recognition`
+
+---
+
+## Build from Source
 
 ```bash
-./Witness.app/Contents/MacOS/Witness
+git clone <repo-url>
+cd AVD-AI-macOS
+swift build -c release
 ```
 
-Or drag `Witness.app` to `/Applications/` and launch from there.
+The binary is output to `.build/release/WitnessApp`.
 
-### Step 3: Install as DMG (Release Build)
+### Running Tests
 
 ```bash
-xcodebuild -project Witness.xcodeproj -configuration Release -sdk macosx-14.5 copy-bundle \
-    BundleID=Witness.app /Users/ahhveedaa/.openclaw/workspace/Witness-v1.0.0.app
-```
+# All unit tests (fast, no Ollama required):
+swift test --skip EndToEndOrchestratorTests
 
-Package:
-
-```bash
-cp -R /Users/ahhveedaa/.openclaw/workspace/Witness-v1.0.0.app /Users/ahhveedaa/.openclaw/workspace/Witness-v1.0.0.dmg
-hdiutil createbundle -source Witness.v1.0.0.app -destpath Witness-v1.0.0.dmg
-
-# Create ZIP alternative
-cp -R /Users/ahhveedaa/.openclaw/workspace/Witness-v1.0.0.app /Users/ahhveedaa/.openclaw/workspace/Witness-v1.0.0.zip
-```
-
-### Step 4: Generate Checksums
-
-```bash
-cd /Users/ahhveedaa/.openclaw/workspace
-
-sha256sum Witness-v1.0.0.dmg > SHA256SUMS.txt
-sha256sum Witness.v1.0.0.zip >> SHA256SUMS.txt
+# End-to-end streaming test (requires Ollama running with qwen3.5:4b):
+swift test --filter EndToEndOrchestratorTests
 ```
 
 ---
 
-## 🛠️ Technical Details
+## Features
 
-### SwiftUI Interface Features
+### Text Mode
+- Persistent conversation workspace
+- Four-tier memory system (Working → Short-term → Long-term → Archival)
+- Sidebar with memory, capabilities, and permissions views
+- Specialist agents: Research, Coding, Creative, System, Knowledge, Ethical, Planning
 
-- **Dark, sophisticated interface** with amber/gold accent
-- **Menu bar presence** for app launcher
-- **Conversation history** with streaming responses
-- **Model status indicator** (local/cloud tracking)
-- **Memory management view** with search and export
+### Presence Mode
+- Immersive full-screen voice interaction
+- Push-to-talk with live visual feedback
+- Geometric Energy Core orb visualisation
+- Shared session context with Text Mode (no conversation loss on switch)
 
-### Native macOS Integration
+### Identity
+- Witness maintains a consistent identity seeded by `witness-core-v1.md`
+- Identity is loaded at startup and injected as a concise runtime kernel per session
+- The founding document is never modified by inference
 
-- Launch at login (LaunchAgent configuration)
-- Keyboard shortcuts (Cmd+1 summon interface)
-- Menu bar notification presence
-- Persistent state across restarts
-- Proper graceful shutdown handling
+### Memory
+- Working memory: active conversation context
+- Short-term memory: session summaries
+- Long-term memory: persistent facts and preferences
+- Archival memory: compressed historical context
 
----
+### Tool Governance
+- Five-tier permission system: `observe → query → suggest → execute → autonomous`
+- Tool allowlist: `git`, `swift`, `uname`, `sw_vers`, `echo`, `pwd`, `date`, `whoami`
+- File read restrictions block sensitive paths (`.ssh`, `Keychains`, credential files)
+- Pending actions require explicit approval before execution
 
-## 📊 Development Progress Summary
-
-| Phase | Status | Files Complete |
-|-------|--------|----------------|
-| Phase 1: Environment Discovery | ✅ Complete | 6 files |
-| Phase 2: Core Foundation | 🟡 In Progress | 7 core files |
-| Phase 3: Native Application | 🔴 Not Started | — |
-
-**Total Project:** ~170KB design docs + ~34KB Swift implementation  
-**Code Coverage:** Architecture designed, foundation implemented
-
----
-
-## 🔐 Security & Permissions
-
-### Permission Levels (from PERMISSIONS.md)
-
-1. **OBSERVE** — Witness can inspect authorized information
-2. **ASSIST** — Can analyze and recommend actions
-3. **EXECUTE** — Can perform pre-authorized actions without prompt
-4. **RESTRICTED** — Requires user approval before each action
-5. **PROHIBITED** — Never permitted
-
-### Self-Prohibition Rule
-Witness cannot grant itself permissions. Every tool execution passes through the permission engine.
+### Device Intelligence
+- Discovers locally running MCP servers, Ollama, LM Studio
+- Specialist agent role profiles matched to task type
+- Model registry supporting multiple providers
 
 ---
 
-## 🚧 Known Limitations & Next Steps
+## Limitations
 
-### Current Implementation
-- ✅ SwiftUI application skeleton exists
-- ✅ Core Swift logic (Orchestration, Memory, Routing) operational
-- ⏳ Ollama API integration (native Swift client ready)
-- ⏳ Full conversation streaming not yet implemented
-- ⏳ Voice recognition and TTS architecture pending
-
-### Immediate Tasks
-1. Complete SwiftUI UI implementation (all 6 views)
-2. Implement actual Ollama API communication with qwen3.5:4b
-3. Create proper DMG packaging workflow
-4. Generate signed/notarized release bundle
+- **Not notarized.** Ad-hoc signed only. First launch requires right-click → Open.
+- **Ollama required.** The app will not function without a running Ollama instance.
+- **No cloud fallback.** If Ollama is not running, inference is unavailable by design.
+- **Apple Silicon only.** Intel Macs are not supported.
+- **macOS 14+ only.** Older versions are not supported.
 
 ---
 
-## 📖 License & Attribution
+## Contributing
 
-Witness is the product of AVD Core architecture, built with local-inference-first principles. Open source under appropriate terms.
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
----
+## Security
 
-<!-- project: path:/Users/ahhveedaa/.openclaw/workspace/AVD-AI-macOS -->
+See [SECURITY.md](SECURITY.md).
+
+## License
+
+Apache License 2.0 — see [LICENSE](LICENSE).
+
+Copyright 2026 Avida Buyombo
