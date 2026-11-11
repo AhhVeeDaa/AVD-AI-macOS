@@ -67,6 +67,6 @@ Discovered MCP servers are **not automatically trusted**. Each MCP server and ea
 
 | Version | Supported |
 |---|---|
-| v1.6.1 | ✅ |
+| v1.6.2 | ✅ |
 | v1.6.0 | ⚠️ Known voice crash — upgrade recommended |
 | < v1.6.0 | ❌ |

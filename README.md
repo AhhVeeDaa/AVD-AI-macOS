@@ -45,7 +45,7 @@ Or download from https://ollama.com.
 
 ### 2. Install Witness
 
-Download `Witness-v1.6.1-macOS.dmg` from [Releases](../../releases) and drag Witness to your Applications folder.
+Download `Witness-v1.6.2-macOS.dmg` from [Releases](../../releases) and drag Witness to your Applications folder.
 
 > **Note:** Witness is ad-hoc signed (not notarized). On first launch, right-click → Open to bypass Gatekeeper.
 

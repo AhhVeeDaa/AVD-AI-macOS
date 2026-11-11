@@ -212,6 +212,61 @@ struct MainWindowView: View {
             Divider()
                 .background(WitnessTheme.borderSubtle)
             
+            // Mini Geometric Energy Core Orb & Voice Presence Widget in Sidebar
+            VStack(spacing: 6) {
+                Button(action: {
+                    vm.activeInteractionMode = .presence
+                }) {
+                    HStack(spacing: 10) {
+                        ZStack {
+                            Circle()
+                                .fill(WitnessTheme.cyanAccent.opacity(0.15))
+                                .frame(width: 38, height: 38)
+                            
+                            GeometricEnergyCoreView(
+                                state: vm.voiceManager.presenceState,
+                                amplitude: vm.voiceManager.audioAmplitude,
+                                isReducedMotion: false
+                            )
+                            .frame(width: 32, height: 32)
+                            .scaleEffect(0.18)
+                        }
+                        .frame(width: 38, height: 38)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 4) {
+                                Text("ENERGY CORE")
+                                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                                    .foregroundColor(WitnessTheme.cyanAccent)
+                                Image(systemName: "arrow.up.right.square")
+                                    .font(.system(size: 8.5))
+                                    .foregroundColor(WitnessTheme.cyanAccent.opacity(0.8))
+                            }
+                            Text(vm.voiceManager.presenceState.rawValue.uppercased())
+                                .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                                .foregroundColor(WitnessTheme.textSecondary)
+                        }
+                        
+                        Spacer()
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(WitnessTheme.bgElevated.opacity(0.7))
+                    .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(WitnessTheme.cyanAccent.opacity(0.25), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+                .help("Open Fullscreen Presence Orb (Cmd+P)")
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+
+            Divider()
+                .background(WitnessTheme.borderSubtle)
+
             // Bottom System Status Pill
             HStack(spacing: 8) {
                 Circle()

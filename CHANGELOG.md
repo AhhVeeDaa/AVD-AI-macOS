@@ -7,6 +7,19 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.6.2] — 2026-11-11
+
+### Added
+- **Interactive Energy Core Orb Preview**: Embedded real-time mini Geometric Energy Core Orb widget in the left sidebar, providing live animated state feedback directly in Text Workspace mode.
+- **Top Command Bar "VOICE ORB MODE" Launchpad**: Dedicated glowing cyan launcher on the active conversation bar for one-click seamless transition to full immersive Presence Mode.
+- **Primary Segmented Mode Control**: High-contrast, keyboard-accessible `[ TEXT ]` | `[ PRESENCE ]` segmented toggle under the header branding.
+
+### Changed
+- Bundle version updated to `1.6.2` (Build 8).
+- Audio amplitude and presence states dynamically bound between Text and Presence workspaces without session reload.
+
+---
+
 ## [1.6.1] — 2026-11-11
 
 ### Fixed
