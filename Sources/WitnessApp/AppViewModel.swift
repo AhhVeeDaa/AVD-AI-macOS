@@ -2,8 +2,15 @@ import SwiftUI
 import AppKit
 import AVDCore
 
+public enum InteractionMode: String, CaseIterable, Sendable {
+    case text = "TEXT MODE"
+    case presence = "PRESENCE MODE"
+}
+
 @MainActor
 final class AppViewModel: ObservableObject {
+    @Published var activeInteractionMode: InteractionMode = .text
+    
     @Published var sessions: [ConversationSession] = []
     @Published var activeSession: ConversationSession?
     @Published var currentStreamingText: String = ""
@@ -41,7 +48,7 @@ final class AppViewModel: ObservableObject {
     @ObservedObject var voiceManager = VoiceManager.shared
     @Published var voiceEnabled: Bool = false
     
-    // v1.5 Device Intelligence & Specialist Agents
+    // Device Intelligence & Capabilities
     @Published var discoveredCapabilities: [DiscoveredCapability] = []
     @Published var selectedCapabilityCategory: DeviceItemCategory? = nil
     @Published var specialistAgentProfiles: [SpecialistAgentProfile] = []
@@ -124,6 +131,10 @@ final class AppViewModel: ObservableObject {
         refreshState()
     }
     
+    func toggleInteractionMode() {
+        activeInteractionMode = (activeInteractionMode == .text) ? .presence : .text
+    }
+    
     func saveModelConfig() {
         let portInt = Int(portString) ?? 11434
         var cfg = modelRouter.config
@@ -142,7 +153,7 @@ final class AppViewModel: ObservableObject {
         self.auditRecords = permissionEngine.auditLog
     }
     
-    // MARK: - Conversations
+    // MARK: - Conversations (Shared Lifecycle)
     
     func createNewSession() {
         let newSession = orchestrator.createNewSession(title: "New Conversation")
@@ -164,13 +175,16 @@ final class AppViewModel: ObservableObject {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, !isStreaming else { return }
         
-        // Assess task via Bounded Decision Layer
         let assessment = decisionLayer.assessTask(userQuery: trimmed)
         self.activeAgentAssessment = assessment
         
         isStreaming = true
         currentStreamingText = ""
         statusMessage = "Witness (\(assessment.recommendedAgentRole.rawValue)) contemplating..."
+        
+        if activeInteractionMode == .presence {
+            voiceManager.presenceState = .contemplating
+        }
         
         orchestrator.processUserMessage(
             text: trimmed,
@@ -179,7 +193,7 @@ final class AppViewModel: ObservableObject {
                 Task { @MainActor [weak self] in
                     guard let self = self else { return }
                     self.currentStreamingText += token
-                    if self.voiceEnabled {
+                    if self.voiceEnabled || self.activeInteractionMode == .presence {
                         self.voiceManager.appendStreamingSpeech(token: token)
                     }
                 }
@@ -194,7 +208,7 @@ final class AppViewModel: ObservableObject {
                     guard let self = self else { return }
                     self.isStreaming = false
                     self.currentStreamingText = ""
-                    if self.voiceEnabled {
+                    if self.voiceEnabled || self.activeInteractionMode == .presence {
                         self.voiceManager.finishStreamingSpeech()
                     }
                     switch result {
@@ -202,6 +216,9 @@ final class AppViewModel: ObservableObject {
                         self.statusMessage = ""
                     case .failure(let err):
                         self.statusMessage = "Error: \(err.localizedDescription)"
+                        if self.activeInteractionMode == .presence {
+                            self.voiceManager.presenceState = .error
+                        }
                     }
                     self.refreshState()
                 }

@@ -26,11 +26,17 @@ struct MainWindowView: View {
     }
     
     var body: some View {
-        NavigationSplitView {
-            sidebarContent
-                .navigationSplitViewColumnWidth(min: 240, ideal: 260, max: 320)
-        } detail: {
-            detailContent
+        Group {
+            if vm.activeInteractionMode == .presence {
+                PresenceView(vm: vm)
+            } else {
+                NavigationSplitView {
+                    sidebarContent
+                        .navigationSplitViewColumnWidth(min: 240, ideal: 260, max: 320)
+                } detail: {
+                    detailContent
+                }
+            }
         }
         .frame(minWidth: 860, minHeight: 580)
         .background(WitnessTheme.bgDeep)
@@ -56,12 +62,34 @@ struct MainWindowView: View {
                         .font(.system(size: 13, weight: .black, design: .monospaced))
                         .foregroundColor(WitnessTheme.textPrimary)
                     
-                    Text("DEVICE INTELLIGENCE v1.5")
+                    Text("AVD CONTINUITY v1.6")
                         .font(.system(size: 8.5, weight: .bold, design: .monospaced))
                         .foregroundColor(WitnessTheme.cyanAccent)
                 }
                 
                 Spacer()
+                
+                // Presence Mode Switcher Pill
+                Button(action: {
+                    vm.activeInteractionMode = .presence
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "waveform")
+                        Text("PRESENCE")
+                    }
+                    .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(WitnessTheme.cyanAccent.opacity(0.15))
+                    .foregroundColor(WitnessTheme.cyanAccent)
+                    .cornerRadius(6)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(WitnessTheme.cyanAccent.opacity(0.3), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+                .help("Switch to Immersive Presence Mode (Cmd+P)")
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)

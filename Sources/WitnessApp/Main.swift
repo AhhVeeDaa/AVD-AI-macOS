@@ -45,6 +45,13 @@ struct WitnessApp: App {
             }
             
             CommandMenu("Witness") {
+                Button(vm.activeInteractionMode == .text ? "Switch to Presence Mode" : "Switch to Text Mode") {
+                    vm.toggleInteractionMode()
+                }
+                .keyboardShortcut("p", modifiers: [.command])
+                
+                Divider()
+                
                 Button("Bring Witness Forward") {
                     NSApp.activate(ignoringOtherApps: true)
                     for window in NSApp.windows where window.canBecomeMain {
@@ -52,29 +59,13 @@ struct WitnessApp: App {
                     }
                 }
                 .keyboardShortcut("w", modifiers: [.command, .shift])
-                
-                Button("Test Model Connection") {
-                    vm.checkConnection()
-                }
             }
         }
         
-        // Compact Menu Bar Presence
-        MenuBarExtra("Witness", systemImage: "circle.hexagongrid.fill") {
+        // Menu Bar Companion
+        MenuBarExtra("Witness", systemImage: "hexagon") {
             CompactCompanionView(vm: vm)
-            
-            Divider()
-            
-            Button("Open Witness Window") {
-                NSApp.activate(ignoringOtherApps: true)
-                for window in NSApp.windows where window.canBecomeMain {
-                    window.makeKeyAndOrderFront(nil)
-                }
-            }
-            
-            Button("Quit Witness") {
-                NSApp.terminate(nil)
-            }
+                .frame(width: 340, height: 260)
         }
         .menuBarExtraStyle(.window)
     }
